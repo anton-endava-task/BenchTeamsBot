@@ -96,7 +96,6 @@ app.on("message", async (context) => {
   }
 
   if (value?.action === "update-status") {
-  // const aadObjectId = (activity.from as any).aadObjectId;
 
   const proposal = await updateProposalStatus(
     value.proposalId,
@@ -157,7 +156,6 @@ if (text === "/runtime") {
 }
 
 if (text === "my proposals") {
-  // const aadObjectId = (activity.from as any).aadObjectId;
 
   const proposals = await getProposalsForUser(aadObjectId);
 
@@ -175,7 +173,6 @@ if (text === "my proposals") {
 }
 
 if (text === "lead proposals") {
-  // const aadObjectId = (activity.from as any).aadObjectId;
 
   const proposals = await getProposalsForLead(aadObjectId);
 
@@ -200,35 +197,43 @@ if (text === "lead proposals") {
 if (text === "create proposal") {
   const proposal = await createProposal();
 
-if (!proposal) {
-  await context.send("Failed to create proposal.");
-  return;
-}
-
-const conversationId = await getConversationIdForProposal(proposal.id);
-
-console.log("Would proactively notify conversation:", conversationId);
-
-  
-
   if (!proposal) {
     await context.send("Failed to create proposal.");
     return;
   }
 
-  await context.send(
-  `Proposal created for project ${proposal.project}.`
-);
+  const conversationId = await getConversationIdForProposal(proposal.id);
 
-await context.send({
-  type: "message",
-  attachments: [
-    {
-      contentType: "application/vnd.microsoft.card.adaptive",
-      content: createProposalCard(proposal),
-    },
-  ],
-});
+  console.log("Would proactively notify conversation:", conversationId);
+
+  console.log(
+    "activities prototype:",
+    Object.getOwnPropertyNames(
+      Object.getPrototypeOf((context.api as any).conversations._activities)
+    )
+  );
+
+  console.log(
+    "create fn:",
+    (context.api as any).conversations._activities.create.toString()
+  );
+
+  await context.send(`Proposal created for project ${proposal.project}.`);
+
+  if (conversationId) {
+    await (context.api as any).conversations._activities.create(
+      conversationId,
+      {
+        type: "message",
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: createProposalCard(proposal),
+          },
+        ],
+      }
+    );
+  }
 
   return;
 }
