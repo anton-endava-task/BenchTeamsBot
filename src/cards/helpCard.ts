@@ -4,33 +4,71 @@ export function createHelpCard() {
     type: "AdaptiveCard",
     version: "1.5",
     body: [
-      {
-        type: "TextBlock",
-        text: "Bench Bot Commands",
-        weight: "Bolder",
-        size: "Large",
-      },
-      {
-        type: "FactSet",
-        facts: [
-          {
-            title: "my proposals",
-            value: "View your active project proposals.",
-          },
-          {
-            title: "lead proposals",
-            value: "View proposals for people assigned to you as lead.",
-          },
-          {
-            title: "create proposal",
-            value: "Create a sample proposal and notify the employee.",
-          },
-          {
-            title: "help",
-            value: "Show this command list.",
-          },
-        ],
-      },
+        {
+            type: "TextBlock",
+            text: "Bench Bot Commands",
+            weight: "Bolder",
+            size: "Large",
+        },
+
+        {
+            type: "TextBlock",
+            text: "Employee Commands",
+            weight: "Bolder",
+            spacing: "Medium",
+        },
+
+        {
+            type: "FactSet",
+            facts: [
+            {
+                title: "my proposals",
+                value: "View your active project proposals.",
+            },
+            ],
+        },
+
+        {
+            type: "TextBlock",
+            text: "Lead Commands",
+            weight: "Bolder",
+            spacing: "Medium",
+        },
+
+        {
+            type: "FactSet",
+            facts: [
+            {
+                title: "lead proposals",
+                value: "View proposals for your people.",
+            },
+            {
+                title: "create proposal",
+                value: "Create a new proposal.",
+            },
+            ],
+        },
+
+        {
+            type: "TextBlock",
+            text: "Information",
+            weight: "Bolder",
+            spacing: "Medium",
+        },
+
+        {
+            type: "FactSet",
+            facts: [
+            {
+                title: "help",
+                value: "Show available commands.",
+            },
+            {
+                title: "workflow",
+                value: "Show staffing workflow lifecycle.",
+            },
+            ],
+        },
     ],
   };
 }

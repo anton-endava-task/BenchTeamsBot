@@ -25,6 +25,7 @@ import {
 
 import { Commands } from "./src/constants/commands";
 import { createHelpCard } from "./src/cards/helpCard";
+import { createWorkflowCard } from "./src/cards/workflowCard";
 
 const storage = new LocalStorage();
 
@@ -210,6 +211,11 @@ app.on("message", async (context) => {
     await sendAdaptiveCard(context, createHelpCard());
     return;
   }
+
+  if (text === Commands.Workflow) {
+  await sendAdaptiveCard(context, createWorkflowCard());
+  return;
+}
 
   await context.send("I didn't recognize that command. Try typing `help`.");
 });
