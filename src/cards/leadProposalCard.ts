@@ -1,14 +1,15 @@
 import { Proposal } from "../models/proposal";
+import { ProposalStatus } from "../constants/proposalStatuses";
 
 function getStatusColor(status: string): string {
   switch (status) {
-    case "Confirmed":
+    case ProposalStatus.Confirmed:
       return "Good";
 
-    case "Rejected":
+    case ProposalStatus.Rejected:
       return "Attention";
 
-    case "Interview Requested":
+    case ProposalStatus.InterviewRequested:
       return "Warning";
 
     default:
@@ -93,25 +94,57 @@ function getStaleStatus(updatedAt?: string): string {
 }
 
 function getStatusActions(proposal: any) {
-  if (proposal.status === "Proposed") {
+  if (proposal.status === ProposalStatus.Proposed) {
     return [
-        createStatusAction(proposal.id, "Interview Requested", "Request Interview"),
-        createStatusAction(proposal.id, "Client Reviewing", "Move to Client Reviewing"),
-        createStatusAction(proposal.id, "Rejected", "Reject"),
-    ];
-}
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.InterviewRequested,
+        "Request Interview"
+      ),
 
-  if (proposal.status === "Interview Requested") {
-    return [
-      createStatusAction(proposal.id, "Client Reviewing", "Move to Client Reviewing"),
-      createStatusAction(proposal.id, "Rejected", "Reject"),
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.ClientReviewing,
+        "Move to Client Reviewing"
+      ),
+
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.Rejected,
+        "Reject"
+      ),
     ];
   }
 
-  if (proposal.status === "Client Reviewing") {
+  if (proposal.status === ProposalStatus.InterviewRequested) {
     return [
-      createStatusAction(proposal.id, "Confirmed", "Confirm"),
-      createStatusAction(proposal.id, "Rejected", "Reject"),
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.ClientReviewing,
+        "Move to Client Reviewing"
+      ),
+
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.Rejected,
+        "Reject"
+      ),
+    ];
+  }
+
+  if (proposal.status === ProposalStatus.ClientReviewing) {
+    return [
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.Confirmed,
+        "Confirm"
+      ),
+
+      createStatusAction(
+        proposal.id,
+        ProposalStatus.Rejected,
+        "Reject"
+      ),
     ];
   }
 
