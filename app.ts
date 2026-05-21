@@ -178,11 +178,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (value?.action === "select-employee") {
-    createProposalSessions.set(conversationId, {
-      step: "enter-project",
-      benchPersonId: value.employeeId,
-    });
+  if (value?.action === "update-status") {
 
     await context.send(
       "What project should this proposal be for?"
@@ -225,11 +221,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === "/count") {
-    const state = getConversationState(activity.conversation.id);
-    await context.send(`The count is ${state.count}`);
-    return;
-  }
+if (text === "my proposals") {
 
   if (text === "/diag") {
     await context.send(JSON.stringify(activity));
@@ -252,8 +244,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (normalizedText === Commands.MyProposals) {
-    const proposals = await getProposalsForUser(aadObjectId);
+if (text === "lead proposals") {
 
     await sendAdaptiveCards(
       context,
@@ -276,32 +267,43 @@ app.on("message", async (context) => {
       proposals.map((proposal) => createLeadProposalCard(proposal))
     );
 
+  if (!proposal) {
+    await context.send("Failed to create proposal.");
     return;
   }
 
-  if (normalizedText === Commands.CreateProposal) {
-    const employees = await getBenchPeople();
+  const conversationId = await getConversationIdForProposal(proposal.id);
 
-    await sendAdaptiveCard(
-      context,
-      createSelectEmployeeCard(employees)
+  console.log("Would proactively notify conversation:", conversationId);
+
+  console.log(
+    "activities prototype:",
+    Object.getOwnPropertyNames(
+      Object.getPrototypeOf((context.api as any).conversations._activities)
+    )
+  );
+
+  console.log(
+    "create fn:",
+    (context.api as any).conversations._activities.create.toString()
+  );
+
+  await context.send(`Proposal created for project ${proposal.project}.`);
+
+  if (conversationId) {
+    await (context.api as any).conversations._activities.create(
+      conversationId,
+      {
+        type: "message",
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: createProposalCard(proposal),
+          },
+        ],
+      }
     );
-
-    return;
   }
-
-  if (normalizedText === Commands.Help) {
-    await sendAdaptiveCard(context, createHelpCard());
-    return;
-  }
-
-  if (normalizedText === Commands.Workflow) {
-  await sendAdaptiveCard(context, createWorkflowCard());
-  return;
-  }
-
-  if (normalizedText === Commands.BenchPeople) {
-    const people = await getBenchPeopleForLead(aadObjectId);
 
     if (!people.length) {
       await context.send("No bench people found.");
