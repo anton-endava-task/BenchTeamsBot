@@ -70,5 +70,40 @@ export function createHelpCard() {
             ],
         },
     ],
+
+    actions: [
+        {
+            type: "Action.Submit",
+            title: "My Proposals",
+            data: {
+            action: "command",
+            command: "my proposals",
+            },
+        },
+        {
+            type: "Action.Submit",
+            title: "Lead Proposals",
+            data: {
+            action: "command",
+            command: "lead proposals",
+            },
+        },
+        {
+            type: "Action.Submit",
+            title: "Create Proposal",
+            data: {
+            action: "command",
+            command: "create proposal",
+            },
+        },
+        {
+            type: "Action.Submit",
+            title: "Workflow",
+            data: {
+            action: "command",
+            command: "workflow",
+            },
+        },
+    ],
   };
 }

@@ -13,6 +13,8 @@ import {
   createProposal,
   saveUserConversation,
   getConversationIdForProposal,
+  getBenchPeople,
+  getBenchPeopleForLead,
 } from "./src/services/proposalService";
 
 import { createProposalCard } from "./src/cards/proposalCard";
@@ -26,6 +28,8 @@ import {
 import { Commands } from "./src/constants/commands";
 import { createHelpCard } from "./src/cards/helpCard";
 import { createWorkflowCard } from "./src/cards/workflowCard";
+import { createSelectEmployeeCard } from "./src/cards/selectEmployeeCard";
+import { createBenchPersonCard } from "./src/cards/benchPersonCard";
 
 const storage = new LocalStorage();
 
@@ -75,16 +79,116 @@ const getConversationState = (conversationId: string): ConversationState => {
   return state;
 };
 
+const createProposalSessions = new Map<string, any>();
+
 app.on("message", async (context) => {
   const activity = context.activity;
   const text: string = stripMentionsText(activity);
   const value = activity.value as any;
+  const commandFromCard = value?.action === "command" ? value.command : undefined;
+  const normalizedText = commandFromCard ?? text;
 
   const aadObjectId = (activity.from as any).aadObjectId;
   const conversationId = activity.conversation.id;
 
   if (aadObjectId && conversationId) {
     await saveUserConversation(aadObjectId, conversationId);
+  }
+
+  const createProposalSession = createProposalSessions.get(conversationId);
+
+  if (createProposalSession) {
+    if (createProposalSession.step === "enter-project") {
+      createProposalSession.project = normalizedText;
+      createProposalSession.step = "enter-role";
+
+      createProposalSessions.set(conversationId, createProposalSession);
+
+      await context.send("What role is this proposal for?");
+      return;
+    }
+
+    if (createProposalSession.step === "enter-role") {
+      createProposalSession.role = normalizedText;
+      createProposalSession.step = "enter-expected-update";
+
+      createProposalSessions.set(conversationId, createProposalSession);
+
+      await context.send("When is the expected next update?");
+      return;
+    }
+
+    if (createProposalSession.step === "enter-expected-update") {
+      createProposalSession.expectedUpdate = normalizedText;
+
+      await context.send(
+        `Creating proposal for ${createProposalSession.project}...`
+      );
+
+      createProposalSessions.delete(conversationId);
+
+      const proposal = await createProposal({
+        benchPersonId: createProposalSession.benchPersonId,
+        leadAadObjectId: aadObjectId,
+        project: createProposalSession.project,
+        role: createProposalSession.role,
+        expectedUpdate: createProposalSession.expectedUpdate,
+        owner: "Ivan Petrov",
+      });
+
+      if (!proposal) {
+        await context.send("Failed to create proposal.");
+        createProposalSessions.delete(conversationId);
+        return;
+      }
+
+      const targetConversationId = await getConversationIdForProposal(proposal.id);
+
+      await context.send(`Proposal created for project ${proposal.project}.`);
+
+      if (targetConversationId) {
+        await (context.api as any).conversations._activities.create(
+          targetConversationId,
+          {
+            type: "message",
+            attachments: [
+              {
+                contentType: "application/vnd.microsoft.card.adaptive",
+                content: createProposalCard(proposal),
+              },
+            ],
+          }
+        );
+      } else {
+        await context.send("Employee conversation not found. Notification was not sent.");
+      }
+
+      createProposalSessions.delete(conversationId);
+      return;
+    }
+  }
+
+  if (value?.action === "create-proposal-for-person") {
+    createProposalSessions.set(conversationId, {
+      step: "enter-project",
+      benchPersonId: value.benchPersonId,
+    });
+
+    await context.send("What project should this proposal be for?");
+    return;
+  }
+
+  if (value?.action === "select-employee") {
+    createProposalSessions.set(conversationId, {
+      step: "enter-project",
+      benchPersonId: value.employeeId,
+    });
+
+    await context.send(
+      "What project should this proposal be for?"
+    );
+
+    return;
   }
 
   if (value?.action === "acknowledge") {
@@ -148,7 +252,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === Commands.MyProposals) {
+  if (normalizedText === Commands.MyProposals) {
     const proposals = await getProposalsForUser(aadObjectId);
 
     await sendAdaptiveCards(
@@ -159,7 +263,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === Commands.LeadProposals) {
+  if (normalizedText  === Commands.LeadProposals) {
     const proposals = await getProposalsForLead(aadObjectId);
 
     if (!proposals.length) {
@@ -175,47 +279,42 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === Commands.CreateProposal) {
-    const proposal = await createProposal();
+  if (normalizedText === Commands.CreateProposal) {
+    const employees = await getBenchPeople();
 
-    if (!proposal) {
-      await context.send("Failed to create proposal.");
-      return;
-    }
-
-    const targetConversationId = await getConversationIdForProposal(proposal.id);
-
-    await context.send(`Proposal created for project ${proposal.project}.`);
-
-    if (targetConversationId) {
-      await (context.api as any).conversations._activities.create(
-        targetConversationId,
-        {
-          type: "message",
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: createProposalCard(proposal),
-            },
-          ],
-        }
-      );
-    } else {
-      await context.send("Employee conversation not found. Notification was not sent.");
-    }
+    await sendAdaptiveCard(
+      context,
+      createSelectEmployeeCard(employees)
+    );
 
     return;
   }
 
-  if (text === Commands.Help) {
+  if (normalizedText === Commands.Help) {
     await sendAdaptiveCard(context, createHelpCard());
     return;
   }
 
-  if (text === Commands.Workflow) {
+  if (normalizedText === Commands.Workflow) {
   await sendAdaptiveCard(context, createWorkflowCard());
   return;
-}
+  }
+
+  if (normalizedText === Commands.BenchPeople) {
+    const people = await getBenchPeopleForLead(aadObjectId);
+
+    if (!people.length) {
+      await context.send("No bench people found.");
+      return;
+    }
+
+    await sendAdaptiveCards(
+      context,
+      people.map((person) => createBenchPersonCard(person))
+    );
+
+    return;
+  }
 
   await context.send("I didn't recognize that command. Try typing `help`.");
 });

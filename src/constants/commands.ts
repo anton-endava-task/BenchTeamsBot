@@ -4,4 +4,5 @@ export const Commands = {
   CreateProposal: "create proposal",
   Help: "help",
   Workflow: "workflow",
+  BenchPeople: "bench people",
 } as const;

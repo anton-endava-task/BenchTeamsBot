@@ -138,7 +138,14 @@ export async function updateProposalStatus(
   return result.rows[0];
 }
 
-export async function createProposal(): Promise<Proposal | undefined> {
+export async function createProposal(input: {
+  benchPersonId: string;
+  leadAadObjectId: string;
+  project: string;
+  role: string;
+  expectedUpdate: string;
+  owner: string;
+}): Promise<Proposal | undefined> {
   const result = await pool.query(
     `
       INSERT INTO proposals (
@@ -156,27 +163,27 @@ export async function createProposal(): Promise<Proposal | undefined> {
       )
       VALUES (
         gen_random_uuid()::text,
-        'person-1',
-        '00000000-0000-0000-0000-0000000000020',
-        '00000000-0000-0000-0000-0000000000020',
-        'Orion',
-        'Senior Backend Developer',
+        $1,
+        NULL,
+        $2,
+        $3,
+        $4,
         'Proposed',
-        'Next Week',
-        'Ivan Petrov',
+        $5,
+        $6,
         false,
         NOW()
       )
-      RETURNING
-        id,
-        project,
-        role,
-        status,
-        expected_update as "expectedUpdate",
-        owner,
-        acknowledged,
-        updated_at as "updatedAt"
-    `
+      RETURNING id
+    `,
+    [
+      input.benchPersonId,
+      input.leadAadObjectId,
+      input.project,
+      input.role,
+      input.expectedUpdate,
+      input.owner,
+    ]
   );
 
   const proposalId = result.rows[0].id;
@@ -235,4 +242,52 @@ export async function getConversationIdForProposal(
   );
 
   return result.rows[0]?.conversation_id;
+}
+
+export async function getBenchPeople(): Promise<any[]> {
+  const result = await pool.query(`
+    SELECT
+      id,
+      name,
+      discipline,
+      bench_status
+    FROM bench_people
+    WHERE bench_status = 'On Bench'
+    ORDER BY name
+  `);
+
+  return result.rows;
+}
+
+export async function getBenchPeopleForLead(
+  leadAadObjectId: string
+): Promise<any[]> {
+  const result = await pool.query(
+    `
+      SELECT
+        bp.id,
+        bp.name,
+        bp.discipline,
+        bp.bench_status,
+        bp.bench_since,
+        COUNT(p.id) FILTER (
+          WHERE p.status NOT IN ('Confirmed', 'Rejected')
+        ) AS active_proposals,
+        COUNT(p.id) FILTER (
+          WHERE p.updated_at < NOW() - INTERVAL '7 days'
+            AND p.status NOT IN ('Confirmed', 'Rejected')
+        ) AS stale_proposals,
+        MAX(p.updated_at) AS last_proposal_update
+      FROM bench_people bp
+      LEFT JOIN proposals p
+        ON p.bench_person_id = bp.id
+       AND p.lead_aad_object_id = $1
+      WHERE bp.bench_status = 'On Bench'
+      GROUP BY bp.id, bp.name, bp.discipline, bp.bench_status, bp.bench_since
+      ORDER BY bp.name
+    `,
+    [leadAadObjectId]
+  );
+
+  return result.rows;
 }
