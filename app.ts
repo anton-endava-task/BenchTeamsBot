@@ -23,6 +23,9 @@ import {
   sendAdaptiveCards,
 } from "./src/utils/sendAdaptiveCard";
 
+import { Commands } from "./src/constants/commands";
+import { createHelpCard } from "./src/cards/helpCard";
+
 const storage = new LocalStorage();
 
 const createTokenFactory = () => {
@@ -144,7 +147,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === "my proposals") {
+  if (text === Commands.MyProposals) {
     const proposals = await getProposalsForUser(aadObjectId);
 
     await sendAdaptiveCards(
@@ -155,7 +158,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === "lead proposals") {
+  if (text === Commands.LeadProposals) {
     const proposals = await getProposalsForLead(aadObjectId);
 
     if (!proposals.length) {
@@ -171,7 +174,7 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (text === "create proposal") {
+  if (text === Commands.CreateProposal) {
     const proposal = await createProposal();
 
     if (!proposal) {
@@ -203,7 +206,12 @@ app.on("message", async (context) => {
     return;
   }
 
-  await context.send("Try typing: my proposals");
+  if (text === Commands.Help) {
+    await sendAdaptiveCard(context, createHelpCard());
+    return;
+  }
+
+  await context.send("I didn't recognize that command. Try typing `help`.");
 });
 
 export default app;
