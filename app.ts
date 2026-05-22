@@ -17,6 +17,7 @@ import {
   getBenchPeopleForLead,
   getActiveProjects,
   getActiveRoles,
+  createProject,
 } from "./src/services/proposalService";
 
 import { createProposalCard } from "./src/cards/proposalCard";
@@ -112,9 +113,33 @@ app.on("message", async (context) => {
     await saveUserConversation(aadObjectId, conversationId);
   }
 
-  const createProposalSession = createProposalSessions.get(conversationId);
+  const createProposalSession =
+  createProposalSessions.get(conversationId);
 
   if (createProposalSession) {
+
+    if (createProposalSession.step === "enter-new-project") {
+      await createProject(normalizedText);
+
+      createProposalSession.project = normalizedText;
+      createProposalSession.step = "select-role";
+
+      createProposalSessions.set(
+        conversationId,
+        createProposalSession
+      );
+
+      const roles = await getActiveRoles();
+
+      await sendAdaptiveCard(
+        context,
+        createSelectRoleCard(roles)
+      );
+
+      return;
+    }
+
+    // другите flow steps тук
   }
 
   if (value?.action === "create-proposal-for-person") {
@@ -155,6 +180,19 @@ app.on("message", async (context) => {
 
     if (!createProposalSession) {
       await context.send("No active proposal creation session.");
+      return;
+    }
+
+    if (value.projectName === "__other__") {
+      createProposalSession.step = "enter-new-project";
+
+      createProposalSessions.set(
+          conversationId,
+          createProposalSession
+      );
+
+      await context.send("What is the new project name?");
+
       return;
     }
 

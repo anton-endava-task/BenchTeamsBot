@@ -17,10 +17,16 @@ export function createSelectProjectCard(projects: any[]) {
                 style: "compact",
                 isRequired: true,
                 errorMessage: "Please select a project.",
-                choices: projects.map((project) => ({
-                    title: project.name,
-                    value: project.name,
-                })),
+                choices: [
+                    ...projects.map((project) => ({
+                        title: project.name,
+                        value: project.name,
+                    })),
+                    {
+                        title: "Other...",
+                        value: "__other__",
+                    },
+                ],
             },
         ],
 

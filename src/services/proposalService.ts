@@ -376,3 +376,26 @@ export async function getActiveRoles(): Promise<any[]> {
 
     return result.rows;
 }
+
+export async function createProject(
+    name: string
+): Promise<void> {
+    await pool.query(
+        `
+      INSERT INTO projects (
+        id,
+        name,
+        client,
+        status
+      )
+      VALUES (
+        gen_random_uuid()::text,
+        $1,
+        NULL,
+        'Active'
+      )
+      ON CONFLICT DO NOTHING
+    `,
+        [name]
+    );
+}

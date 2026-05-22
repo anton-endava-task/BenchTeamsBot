@@ -2,6 +2,7 @@ export type CreateProposalStep =
   | "select-employee"
   | "select-project"
   | "enter-project"
+  | "enter-new-project"
   | "enter-role"
   | "enter-expected-update";
 
