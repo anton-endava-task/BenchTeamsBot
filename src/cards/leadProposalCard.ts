@@ -67,7 +67,17 @@ export function createLeadProposalCard(proposal: any) {
       },
     ],
 
-    actions: getStatusActions(proposal),
+    actions: [
+      ...getStatusActions(proposal),
+      {
+        type: "Action.Submit",
+        title: "View History",
+        data: {
+          action: "view-history",
+          proposalId: proposal.id,
+        },
+      },
+    ],
   };
 }
 

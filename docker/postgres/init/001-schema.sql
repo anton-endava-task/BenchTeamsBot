@@ -31,10 +31,11 @@ CREATE TABLE IF NOT EXISTS proposals (
 );
 
 CREATE TABLE IF NOT EXISTS proposal_history (
-  id SERIAL PRIMARY KEY,
-  proposal_id TEXT NOT NULL REFERENCES proposals(id),
-  old_status TEXT,
-  new_status TEXT NOT NULL,
-  changed_by TEXT,
-  changed_at TIMESTAMP DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    proposal_id TEXT NOT NULL REFERENCES proposals(id),
+    event_type TEXT NOT NULL DEFAULT 'StatusChanged',
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_by TEXT,
+    changed_at TIMESTAMP DEFAULT NOW()
 );

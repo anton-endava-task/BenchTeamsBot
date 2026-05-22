@@ -31,6 +31,18 @@ import { createWorkflowCard } from "./src/cards/workflowCard";
 import { createSelectEmployeeCard } from "./src/cards/selectEmployeeCard";
 import { createBenchPersonCard } from "./src/cards/benchPersonCard";
 
+import {
+  handleAcknowledgeProposal,
+  handleMyProposals,
+} from "./src/handlers/employeeHandlers";
+import {
+  handleUpdateProposalStatus,
+  handleLeadProposals,
+  handleBenchPeople,
+} from "./src/handlers/leadHandlers";
+import { getProposalHistory } from "./src/services/proposalService";
+import { createProposalHistoryCard } from "./src/cards/proposalHistoryCard";
+
 const storage = new LocalStorage();
 
 const createTokenFactory = () => {
@@ -192,30 +204,18 @@ app.on("message", async (context) => {
   }
 
   if (value?.action === "acknowledge") {
-    const proposal = await acknowledgeProposal(value.proposalId);
-
-    if (!proposal) {
-      await context.send("Proposal not found.");
-      return;
-    }
-
-    await sendAdaptiveCard(context, createProposalCard(proposal));
+    await handleAcknowledgeProposal(context, value.proposalId);
     return;
   }
 
   if (value?.action === "update-status") {
-    const proposal = await updateProposalStatus(
-      value.proposalId,
-      value.status,
-      aadObjectId
+    await handleUpdateProposalStatus(
+        context,
+        value.proposalId,
+        value.status,
+        aadObjectId
     );
 
-    if (!proposal) {
-      await context.send("Proposal not found.");
-      return;
-    }
-
-    await sendAdaptiveCard(context, createLeadProposalCard(proposal));
     return;
   }
 
@@ -252,30 +252,29 @@ app.on("message", async (context) => {
     return;
   }
 
-  if (normalizedText === Commands.MyProposals) {
-    const proposals = await getProposalsForUser(aadObjectId);
+  if (value?.action === "view-history") {
+    const history = await getProposalHistory(value.proposalId);
 
-    await sendAdaptiveCards(
-      context,
-      proposals.map((proposal) => createProposalCard(proposal))
+    if (!history.length) {
+      await context.send("No history found for this proposal.");
+      return;
+    }
+
+    await sendAdaptiveCard(
+        context,
+        createProposalHistoryCard(value.proposalId, history)
     );
 
     return;
   }
 
-  if (normalizedText  === Commands.LeadProposals) {
-    const proposals = await getProposalsForLead(aadObjectId);
+  if (normalizedText === Commands.MyProposals) {
+    await handleMyProposals(context, aadObjectId);
+    return;
+  }
 
-    if (!proposals.length) {
-      await context.send("No proposals found for your lead view.");
-      return;
-    }
-
-    await sendAdaptiveCards(
-      context,
-      proposals.map((proposal) => createLeadProposalCard(proposal))
-    );
-
+  if (normalizedText === Commands.LeadProposals) {
+    await handleLeadProposals(context, aadObjectId);
     return;
   }
 

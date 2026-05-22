@@ -123,16 +123,23 @@ export async function updateProposalStatus(
 
 
   await pool.query(
-    `
-      INSERT INTO proposal_history (
-        proposal_id,
-        old_status,
-        new_status,
-        changed_by
-      )
-      VALUES ($1, $2, $3, $4)
-    `,
-    [proposalId, oldStatus, status, changedBy]
+      `
+        INSERT INTO proposal_history (
+          proposal_id,
+          event_type,
+          old_status,
+          new_status,
+          changed_by
+        )
+        VALUES ($1, $2, $3, $4, $5)
+      `,
+      [
+        proposalId,
+        "StatusChanged",
+        oldStatus,
+        status,
+        changedBy,
+      ]
   );
 
   return result.rows[0];
@@ -187,6 +194,26 @@ export async function createProposal(input: {
   );
 
   const proposalId = result.rows[0].id;
+
+  await pool.query(
+      `
+    INSERT INTO proposal_history (
+      proposal_id,
+      event_type,
+      old_status,
+      new_status,
+      changed_by
+    )
+    VALUES ($1, $2, $3, $4, $5)
+  `,
+      [
+        proposalId,
+        "ProposalCreated",
+        null,
+        "Proposed",
+        input.leadAadObjectId,
+      ]
+  );
 
   const fullProposal = await pool.query(
     `
@@ -287,6 +314,30 @@ export async function getBenchPeopleForLead(
       ORDER BY bp.name
     `,
     [leadAadObjectId]
+  );
+
+  return result.rows;
+}
+
+export async function getProposalHistory(
+    proposalId: string
+): Promise<any[]> {
+  const result = await pool.query(
+      `
+        SELECT
+          ph.event_type,
+          ph.old_status,
+          ph.new_status,
+          ph.changed_by,
+          ph.changed_at,
+          bp.name as changed_by_name
+        FROM proposal_history ph
+               LEFT JOIN bench_people bp
+                         ON bp.aad_object_id = ph.changed_by
+        WHERE ph.proposal_id = $1
+        ORDER BY ph.changed_at ASC
+      `,
+      [proposalId]
   );
 
   return result.rows;
