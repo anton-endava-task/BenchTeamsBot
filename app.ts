@@ -116,7 +116,9 @@ app.on("message", async (context) => {
 
       createProposalSessions.set(conversationId, createProposalSession);
 
-      await context.send("What role is this proposal for?");
+      await context.send(
+          "What role is this proposal for?\n\nExamples:\n• Senior Java Developer\n• QA Engineer\n• Tech Lead"
+      );
       return;
     }
 
@@ -126,7 +128,9 @@ app.on("message", async (context) => {
 
       createProposalSessions.set(conversationId, createProposalSession);
 
-      await context.send("When is the expected next update?");
+      await context.send(
+          "When is the expected next update?\n\nExamples:\n• Tomorrow\n• Next Friday\n• In 2 weeks"
+      );
       return;
     }
 
@@ -186,7 +190,9 @@ app.on("message", async (context) => {
       benchPersonId: value.benchPersonId,
     });
 
-    await context.send("What project should this proposal be for?");
+    await context.send(
+        "What project should this proposal be for?\n\nExamples:\n- Orion\n- Phoenix\n- Atlas"
+    );
     return;
   }
 
@@ -197,7 +203,7 @@ app.on("message", async (context) => {
     });
 
     await context.send(
-      "What project should this proposal be for?"
+        "What project should this proposal be for?\n\nExamples:\n- Orion\n- Phoenix\n- Atlas"
     );
 
     return;
