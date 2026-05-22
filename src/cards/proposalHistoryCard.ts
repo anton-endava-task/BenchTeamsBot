@@ -32,6 +32,15 @@ export function createProposalHistoryCard(
                 isSubtle: true,
                 wrap: true,
             },
+            {
+                type: "TextBlock",
+                text:
+                    history.length === 1
+                        ? "No status transitions yet."
+                        : `${history.length} timeline events`,
+                isSubtle: true,
+                spacing: "Small",
+            },
 
             ...history.flatMap((item, index) => {
                 const blocks: any[] = [];
