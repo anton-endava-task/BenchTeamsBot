@@ -18,6 +18,7 @@ import {
   getActiveProjects,
   getActiveRoles,
   createProject,
+  createRole,
 } from "./src/services/proposalService";
 
 import { createProposalCard } from "./src/cards/proposalCard";
@@ -139,6 +140,25 @@ app.on("message", async (context) => {
       return;
     }
 
+    if (createProposalSession.step === "enter-new-role") {
+      await createRole(normalizedText);
+
+      createProposalSession.role = normalizedText;
+      createProposalSession.step = "select-expected-update";
+
+      createProposalSessions.set(
+          conversationId,
+          createProposalSession
+      );
+
+      await sendAdaptiveCard(
+          context,
+          createSelectExpectedUpdateCard()
+      );
+
+      return;
+    }
+
     // другите flow steps тук
   }
 
@@ -197,7 +217,7 @@ app.on("message", async (context) => {
     }
 
     createProposalSession.project = value.projectName;
-    createProposalSession.step = "enter-role";
+    createProposalSession.step = "select-role";
 
     createProposalSessions.set(
         conversationId,
@@ -223,8 +243,21 @@ app.on("message", async (context) => {
       return;
     }
 
+    if (value.roleName === "__other__") {
+      createProposalSession.step = "enter-new-role";
+
+      createProposalSessions.set(
+          conversationId,
+          createProposalSession
+      );
+
+      await context.send("What is the new role name?");
+
+      return;
+    }
+
     createProposalSession.role = value.roleName;
-    createProposalSession.step = "enter-expected-update";
+    createProposalSession.step = "select-expected-update";
 
     createProposalSessions.set(
         conversationId,
@@ -407,6 +440,17 @@ app.on("message", async (context) => {
 
     return;
   }
+
+  /*
+if (normalizedText === "profile") {
+  const response = await (context.userGraph as any).http.get(
+    "/me?$select=id,displayName,mail,userPrincipalName,jobTitle,department,officeLocation"
+  );
+
+  await context.send(JSON.stringify(response.data, null, 2));
+  return;
+}
+*/
 
   await context.send("I didn't recognize that command. Try typing `help`.");
 });

@@ -1,10 +1,10 @@
 export type CreateProposalStep =
-  | "select-employee"
-  | "select-project"
-  | "enter-project"
-  | "enter-new-project"
-  | "enter-role"
-  | "enter-expected-update";
+    | "select-employee"
+    | "select-project"
+    | "select-role"
+    | "select-expected-update"
+    | "enter-new-project"
+    | "enter-new-role";
 
 export type CreateProposalSession = {
   step: CreateProposalStep;

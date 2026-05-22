@@ -361,18 +361,16 @@ export async function getActiveProjects(): Promise<any[]> {
 }
 
 export async function getActiveRoles(): Promise<any[]> {
-    const result = await pool.query(
-        `
-      SELECT
-        id,
-        name,
-        discipline,
-        status
-      FROM roles
-      WHERE status = 'Active'
-      ORDER BY name
-    `
-    );
+    const result = await pool.query(`
+        SELECT
+            id,
+            name,
+            discipline,
+            status
+        FROM roles
+        WHERE LOWER(status) = 'active'
+        ORDER BY name
+    `);
 
     return result.rows;
 }
@@ -386,6 +384,29 @@ export async function createProject(
         id,
         name,
         client,
+        status
+      )
+      VALUES (
+        gen_random_uuid()::text,
+        $1,
+        NULL,
+        'Active'
+      )
+      ON CONFLICT DO NOTHING
+    `,
+        [name]
+    );
+}
+
+export async function createRole(
+    name: string
+): Promise<void> {
+    await pool.query(
+        `
+      INSERT INTO roles (
+        id,
+        name,
+        discipline,
         status
       )
       VALUES (

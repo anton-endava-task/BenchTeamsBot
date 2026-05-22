@@ -17,10 +17,16 @@ export function createSelectRoleCard(roles: any[]) {
                 style: "compact",
                 isRequired: true,
                 errorMessage: "Please select a role.",
-                choices: roles.map((role) => ({
-                    title: role.name,
-                    value: role.name,
-                })),
+                choices: [
+                    ...roles.map((role) => ({
+                        title: role.name,
+                        value: role.name,
+                    })),
+                    {
+                        title: "Other...",
+                        value: "__other__",
+                    },
+                ],
             },
         ],
 
