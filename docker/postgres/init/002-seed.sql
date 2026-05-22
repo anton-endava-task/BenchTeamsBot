@@ -50,3 +50,28 @@ VALUES
   ('confirmed', 'Confirmed', 4, true),
   ('rejected', 'Rejected', 5, true)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO projects (
+    id,
+    name,
+    client,
+    status
+)
+VALUES
+    ('project-orion', 'Orion', 'Demo Client', 'Active'),
+    ('project-phoenix', 'Phoenix', 'Demo Client', 'Active'),
+    ('project-atlas', 'Atlas', 'Demo Client', 'Active')
+    ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO roles (
+    id,
+    name,
+    discipline,
+    status
+)
+VALUES
+    ('role-senior-java-developer', 'Senior Java Developer', 'Java', 'Active'),
+    ('role-qa-engineer', 'QA', 'QA', 'Active'),
+    ('role-tech-lead', 'Tech Lead', 'Java', 'Active'),
+    ('role-senior-backend-developer', 'Senior Backend Developer', 'Java', 'Active')
+    ON CONFLICT (id) DO NOTHING;

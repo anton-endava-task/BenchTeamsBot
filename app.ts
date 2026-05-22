@@ -15,6 +15,8 @@ import {
   getConversationIdForProposal,
   getBenchPeople,
   getBenchPeopleForLead,
+  getActiveProjects,
+  getActiveRoles,
 } from "./src/services/proposalService";
 
 import { createProposalCard } from "./src/cards/proposalCard";
@@ -42,6 +44,9 @@ import {
 } from "./src/handlers/leadHandlers";
 import { getProposalHistory } from "./src/services/proposalService";
 import { createProposalHistoryCard } from "./src/cards/proposalHistoryCard";
+import { createSelectProjectCard } from "./src/cards/selectProjectCard";
+import { createSelectRoleCard } from "./src/cards/selectRoleCard";
+import { createSelectExpectedUpdateCard } from "./src/cards/selectExpectedUpdateCard";
 
 const storage = new LocalStorage();
 
@@ -110,60 +115,129 @@ app.on("message", async (context) => {
   const createProposalSession = createProposalSessions.get(conversationId);
 
   if (createProposalSession) {
-    if (createProposalSession.step === "enter-project") {
-      createProposalSession.project = normalizedText;
-      createProposalSession.step = "enter-role";
+  }
 
-      createProposalSessions.set(conversationId, createProposalSession);
+  if (value?.action === "create-proposal-for-person") {
+    const projects = await getActiveProjects();
 
-      await context.send(
-          "What role is this proposal for?\n\nExamples:\n• Senior Java Developer\n• QA Engineer\n• Tech Lead"
-      );
+    createProposalSessions.set(conversationId, {
+      step: "select-project",
+      benchPersonId: value.benchPersonId,
+    });
+
+    await sendAdaptiveCard(
+        context,
+        createSelectProjectCard(projects)
+    );
+
+    return;
+  }
+
+  if (value?.action === "select-employee") {
+    const projects = await getActiveProjects();
+
+    createProposalSessions.set(conversationId, {
+      step: "select-project",
+      benchPersonId: value.employeeId,
+    });
+
+    await sendAdaptiveCard(
+        context,
+        createSelectProjectCard(projects)
+    );
+
+    return;
+  }
+
+  if (value?.action === "select-project") {
+    const createProposalSession =
+        createProposalSessions.get(conversationId);
+
+    if (!createProposalSession) {
+      await context.send("No active proposal creation session.");
       return;
     }
 
-    if (createProposalSession.step === "enter-role") {
-      createProposalSession.role = normalizedText;
-      createProposalSession.step = "enter-expected-update";
+    createProposalSession.project = value.projectName;
+    createProposalSession.step = "enter-role";
 
-      createProposalSessions.set(conversationId, createProposalSession);
+    createProposalSessions.set(
+        conversationId,
+        createProposalSession
+    );
 
-      await context.send(
-          "When is the expected next update?\n\nExamples:\n• Tomorrow\n• Next Friday\n• In 2 weeks"
-      );
+    const roles = await getActiveRoles();
+
+    await sendAdaptiveCard(
+        context,
+        createSelectRoleCard(roles)
+    );
+
+    return;
+  }
+
+  if (value?.action === "select-role") {
+    const createProposalSession =
+        createProposalSessions.get(conversationId);
+
+    if (!createProposalSession) {
+      await context.send("No active proposal creation session.");
       return;
     }
 
-    if (createProposalSession.step === "enter-expected-update") {
-      createProposalSession.expectedUpdate = normalizedText;
+    createProposalSession.role = value.roleName;
+    createProposalSession.step = "enter-expected-update";
 
-      await context.send(
+    createProposalSessions.set(
+        conversationId,
+        createProposalSession
+    );
+
+    await sendAdaptiveCard(
+        context,
+        createSelectExpectedUpdateCard()
+    );
+
+    return;
+  }
+
+  if (value?.action === "select-expected-update") {
+    const createProposalSession =
+        createProposalSessions.get(conversationId);
+
+    if (!createProposalSession) {
+      await context.send("No active proposal creation session.");
+      return;
+    }
+
+    createProposalSession.expectedUpdate = value.expectedUpdate;
+
+    await context.send(
         `Creating proposal for ${createProposalSession.project}...`
-      );
+    );
 
-      createProposalSessions.delete(conversationId);
+    const proposal = await createProposal({
+      benchPersonId: createProposalSession.benchPersonId,
+      leadAadObjectId: aadObjectId,
+      project: createProposalSession.project,
+      role: createProposalSession.role,
+      expectedUpdate: createProposalSession.expectedUpdate,
+      owner: "Ivan Petrov",
+    });
 
-      const proposal = await createProposal({
-        benchPersonId: createProposalSession.benchPersonId,
-        leadAadObjectId: aadObjectId,
-        project: createProposalSession.project,
-        role: createProposalSession.role,
-        expectedUpdate: createProposalSession.expectedUpdate,
-        owner: "Ivan Petrov",
-      });
+    createProposalSessions.delete(conversationId);
 
-      if (!proposal) {
-        await context.send("Failed to create proposal.");
-        createProposalSessions.delete(conversationId);
-        return;
-      }
+    if (!proposal) {
+      await context.send("Failed to create proposal.");
+      return;
+    }
 
-      const targetConversationId = await getConversationIdForProposal(proposal.id);
+    const targetConversationId = await getConversationIdForProposal(proposal.id);
 
-      await context.send(`Proposal created for project ${proposal.project}.`);
+    await context.send(`Proposal created for project ${proposal.project}.`);
 
-      if (targetConversationId) {
-        await (context.api as any).conversations._activities.create(
+    if (targetConversationId) {
+      await (context.api as any).conversations._activities.create(
           targetConversationId,
           {
             type: "message",
@@ -174,37 +248,12 @@ app.on("message", async (context) => {
               },
             ],
           }
-        );
-      } else {
-        await context.send("Employee conversation not found. Notification was not sent.");
-      }
-
-      createProposalSessions.delete(conversationId);
-      return;
+      );
+    } else {
+      await context.send(
+          "Employee conversation not found. Notification was not sent."
+      );
     }
-  }
-
-  if (value?.action === "create-proposal-for-person") {
-    createProposalSessions.set(conversationId, {
-      step: "enter-project",
-      benchPersonId: value.benchPersonId,
-    });
-
-    await context.send(
-        "What project should this proposal be for?\n\nExamples:\n- Orion\n- Phoenix\n- Atlas"
-    );
-    return;
-  }
-
-  if (value?.action === "select-employee") {
-    createProposalSessions.set(conversationId, {
-      step: "enter-project",
-      benchPersonId: value.employeeId,
-    });
-
-    await context.send(
-        "What project should this proposal be for?\n\nExamples:\n- Orion\n- Phoenix\n- Atlas"
-    );
 
     return;
   }

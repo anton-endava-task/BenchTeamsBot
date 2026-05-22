@@ -39,3 +39,19 @@ CREATE TABLE IF NOT EXISTS proposal_history (
     changed_by TEXT,
     changed_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE projects (
+                          id TEXT PRIMARY KEY,
+                          name TEXT NOT NULL,
+                          client TEXT,
+                          status TEXT NOT NULL DEFAULT 'Active',
+                          created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE roles (
+                       id TEXT PRIMARY KEY,
+                       name TEXT NOT NULL,
+                       discipline TEXT,
+                       status TEXT NOT NULL DEFAULT 'Active',
+                       created_at TIMESTAMP DEFAULT NOW()
+);

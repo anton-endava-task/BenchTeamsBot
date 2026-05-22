@@ -342,3 +342,37 @@ export async function getProposalHistory(
 
   return result.rows;
 }
+
+export async function getActiveProjects(): Promise<any[]> {
+    const result = await pool.query(
+        `
+      SELECT
+        id,
+        name,
+        client,
+        status
+      FROM projects
+      WHERE status = 'Active'
+      ORDER BY name
+    `
+    );
+
+    return result.rows;
+}
+
+export async function getActiveRoles(): Promise<any[]> {
+    const result = await pool.query(
+        `
+      SELECT
+        id,
+        name,
+        discipline,
+        status
+      FROM roles
+      WHERE status = 'Active'
+      ORDER BY name
+    `
+    );
+
+    return result.rows;
+}
